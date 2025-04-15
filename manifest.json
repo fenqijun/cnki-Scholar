@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "cnki-Scholar",
+  "version": "1.1",
+  "description": "在知网文章列表页面添加直接下载PDF按钮、摘要悬停显示功能和下载所有PDF按钮，支持显示期刊等级、WJCI分区、影响因子。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "https://*.cnki.net/*",
+    "https://gitee.com/*"
+  ],
+  "host_permissions": [
+    "https://*.cnki.net/*",
+    "https://gitee.com/*"
+  ],
+  "background": {
+      "service_worker": "background.js"
+  },
+  "content_scripts": [
+      {
+          "matches": ["*://*.cnki.net/*"],
+          "js": ["content.js"],
+          "css": ["content.css"]
+      }
+  ],
+  "action": {
+      "default_title": "知网PDF下载助手"
+  }
+}
