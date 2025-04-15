@@ -26,14 +26,14 @@
 - 显示期刊影响因子(iF)
 - 彩色标签分类，一目了然
 
-## 🚀 使用指南
-
-1. 安装插件后访问CNKI网站
-2. 在检索结果页即可看到新增功能：
-   - 每篇文献旁的下载按钮
-   - 页面底部的批量下载按钮
-3. 鼠标悬停文献标题查看摘要
-4. 期刊标签自动显示在文献信息中
+## Chrome浏览器安装
+1. enge浏览器地址栏输入:`edge://extensions/`或者chrome浏览器地址栏输入：`chrome://extensions/`
+2. 开启右上角「开发人员模式」
+![dbdf576adc664da4b021ff103ee64926](https://github.com/user-attachments/assets/f9b0e1e6-7698-41e4-997b-1d7f91ad0f64)
+4. 点击「加载已解压的扩展程序」
+5. 选择插件文件夹
+6. 启用插件
+![22d0eedd4d8de45212b155821a56b41b](https://github.com/user-attachments/assets/a404e3e6-6884-459a-a682-7c8a01eb7031)
 
 ## 🎨 界面优化
 
