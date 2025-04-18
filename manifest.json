@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "cnki-Scholar",
   "version": "1.1",
-  "description": "在知网文章列表页面添加直接下载PDF按钮、摘要悬停显示功能和下载所有PDF按钮，支持显示期刊等级、WJCI分区、影响因子。",
+  "description": "在知网文章列表页面添加直接下载PDF按钮、摘要悬停显示功能和下载所有PDF按钮，支持显示中文、外文期刊等级、中科院分区、JCR分区、WJCI分区、影响因子等信息。",
   "permissions": [
     "activeTab",
     "scripting",
@@ -25,6 +25,6 @@
       }
   ],
   "action": {
-      "default_title": "知网PDF下载助手"
+      "default_title": "cnki-Scholar"
   }
 }
