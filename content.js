@@ -370,22 +370,19 @@ async function downloadAllPdfs() {
     }
 }
 
-// 在文件末尾添加新的processJournalTags函数
-// 在processJournalTags函数中修改期刊名称匹配逻辑
 async function processJournalTags() {
   try {
-    // 尝试从Gitee获取数据
-    let journalsData = await fetchJournalData('https://gitee.com/kailangge/qikandata/raw/master/cnki_journals.json');
-    
-    // 如果失败，尝试备用数据源
-    if (!journalsData) {
-      journalsData = await fetchJournalData('https://raw.githubusercontent.com/kailangge/cnki-journals/main/cnki-journals.json');
-    }
-    
-    // 如果没有获取到数据，直接返回
-    if (!journalsData) {
-      console.warn('未能获取期刊数据');
-      return;
+    // 仅从 Gitee 获取数据
+    let journalsData = null;
+    try {
+        journalsData = await fetchJournalData('https://gitee.com/kailangge/qikandata/raw/master/cnki_journals.json');
+        if (!journalsData) {
+            console.warn('未能从 Gitee 获取期刊数据');
+            return; // 获取失败，直接返回
+        }
+    } catch (error) {
+        console.error('从 Gitee 获取期刊数据时出错:', error);
+        return; // 获取失败，直接返回
     }
 
   // 获取所有期刊名称元素
@@ -393,25 +390,23 @@ async function processJournalTags() {
   
   sourceElements.forEach(element => {
     // 跳过已处理的元素
-    if (element.querySelector('.journal-tag')) return;
+    if (element.querySelector('.journal-tag-container')) return; // 使用新的容器类名检查
     
     // 获取期刊名称
-    const journalName = element.querySelector('a')?.textContent.trim();
+    const journalNameElement = element.querySelector('a, span'); // 修改选择器以同时匹配 a 和 span
+    const journalName = journalNameElement?.textContent.trim();
     if (journalName) {
-      // 查找匹配的期刊数据
-      const journalInfo = journalsData.find(j => j.title === journalName);
+      // 查找匹配的期刊数据 (不区分大小写)
+      const journalInfo = journalsData.find(j => j.title.toLowerCase() === journalName.toLowerCase());
       
-      // 创建标签元素
-      const tag = document.createElement('span');
-      tag.className = 'journal-tag';
-      
-      // 如果有匹配的期刊数据，显示tags，否则跳过
-      if (!journalInfo || !journalInfo.tags || journalInfo.tags.length === 0) {
+      // 如果没有匹配的期刊数据，跳过
+      if (!journalInfo) {
         return;
       }
 
       // 为所有标签创建单行容器
       const tagContainer = document.createElement('div');
+      tagContainer.className = 'journal-tag-container'; // 添加类名以便检查
       Object.assign(tagContainer.style, {
         display: 'flex',
         flexWrap: 'wrap',
@@ -419,11 +414,111 @@ async function processJournalTags() {
         marginTop: '2px',
         lineHeight: '1'
       });
+
+      // 添加 中科院 标签
+      if (journalInfo["中科院"]) {
+          const casTag = document.createElement('span');
+          casTag.className = 'journal-tag cas-tag';
+          casTag.textContent = `中科院 ${journalInfo["中科院"]}区`;
+          
+          // 根据分区等级设置颜色 (1区红, 2区橙, 3区黄, 4区蓝)
+          let casColor = '#2196F3'; // 默认蓝色 (4区)
+          switch (journalInfo["中科院"]) {
+              case '1': casColor = '#F44336'; break; // 红色
+              case '2': casColor = '#FF9800'; break; // 橙色
+              case '3': casColor = '#FFC107'; break; // 黄色
+          }
+          
+          Object.assign(casTag.style, {
+              display: 'inline-block',
+              padding: '2px 6px',
+              backgroundColor: casColor,
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '8px',
+              fontWeight: '500',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              marginRight: '4px'
+          });
+          tagContainer.appendChild(casTag);
+      }
+
+      // 添加 TOP 标签
+      if (journalInfo.TOP === 'T') {
+          const topTag = document.createElement('span');
+          topTag.className = 'journal-tag top-tag';
+          topTag.textContent = 'Top';
+          
+          Object.assign(topTag.style, {
+              display: 'inline-block',
+              padding: '2px 6px',
+              backgroundColor: '#9C27B0', // 紫色
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '8px',
+              fontWeight: '500',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              marginRight: '4px'
+          });
+          tagContainer.appendChild(topTag);
+      }
+
+      // 添加 JCR 分区标签 (IF_Quartile)
+      if (journalInfo.IF_Quartile && journalInfo.IF_Quartile !== 'N/A') {
+        const jcrTag = document.createElement('span');
+        jcrTag.className = 'journal-tag jcr-tag';
+        jcrTag.textContent = `JCR ${journalInfo.IF_Quartile}`;
+
+        // 根据分区等级设置颜色 (Q1红, Q2橙, Q3黄, Q4蓝)
+        let jcrColor = '#2196F3'; // 默认蓝色 (Q4)
+        switch (journalInfo.IF_Quartile) {
+            case 'Q1': jcrColor = '#F44336'; break; // 红色
+            case 'Q2': jcrColor = '#FF9800'; break; // 橙色
+            case 'Q3': jcrColor = '#FFC107'; break; // 黄色
+        }
+
+        Object.assign(jcrTag.style, {
+            display: 'inline-block',
+            padding: '2px 6px',
+            backgroundColor: jcrColor,
+            color: 'white',
+            borderRadius: '4px',
+            fontSize: '8px',
+            fontWeight: '500',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+            marginRight: '4px'
+        });
+        tagContainer.appendChild(jcrTag);
+      }
       
-      // 为每个标签创建独立的span元素
-      if (journalInfo.wjci) {
+      // 添加 WOS 标签
+      if (journalInfo.WOS && journalInfo.WOS !== 'N/A') {
+        const wosValues = journalInfo.WOS.split(';');
+        wosValues.forEach(wosValue => {
+          const wosTag = document.createElement('span');
+          wosTag.className = 'journal-tag wos-tag';
+          wosTag.textContent = wosValue.trim();
+          
+          // 可以根据 WOS 类型设置不同颜色，这里用统一颜色
+          Object.assign(wosTag.style, {
+              display: 'inline-block',
+              padding: '2px 6px',
+              backgroundColor: '#009688', // 青色
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '8px',
+              fontWeight: '500',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              marginRight: '4px'
+          });
+          tagContainer.appendChild(wosTag);
+        });
+      }
+
+      // 为每个现有标签创建独立的span元素 (WJCI 和 其他 tags)
+      if (journalInfo.wjci && journalInfo.wjci !== 'N/A') {
           const wjciTag = document.createElement('span');
-          wjciTag.className = 'journal-tag';
+          wjciTag.className = 'journal-tag wjci-tag';
           wjciTag.textContent = `WJCI ${journalInfo.wjci}`;
           
           // 根据WJCI等级设置颜色
@@ -449,63 +544,133 @@ async function processJournalTags() {
           tagContainer.appendChild(wjciTag);
       }
 
-      journalInfo.tags.forEach(tagText => {
-        const singleTag = document.createElement('span');
-        singleTag.className = 'journal-tag';
-        singleTag.textContent = tagText;
-        
-        // 使用更高级的配色方案
-        let bgColor = '#5C6BC0'; // 柔和蓝
-        if (tagText.includes('核心')) bgColor = '#EF5350'; // 柔和红
-        else if (tagText.includes('EI')) bgColor = '#FF7043'; // 柔和橙
-        else if (tagText.includes('CSCD')) bgColor = '#FFCA28'; // 柔和黄
-        else if (tagText.includes('CSSCI')) bgColor = '#9575CD'; // 柔和紫
-        
-        // 添加样式
-        Object.assign(singleTag.style, {
-          display: 'inline-block',
-          padding: '2px 6px',
-          backgroundColor: bgColor.includes('5C6BC0') ? 'rgba(92, 107, 192, 0.6)' :
-                         bgColor.includes('EF5350') ? 'rgba(239, 83, 80, 0.6)' :
-                         bgColor.includes('FF7043') ? 'rgba(255, 112, 67, 0.6)' :
-                         bgColor.includes('FFCA28') ? 'rgba(255, 202, 40, 0.6)' :
-                         'rgba(149, 117, 205, 0.6)',
-          color: 'white',
-          borderRadius: '4px',
-          fontSize: '8px',
-          fontWeight: '500',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        });
-        
-        tagContainer.appendChild(singleTag);
-      });
-      
-      // 插入到期刊名称后面
-      element.querySelector('a').insertAdjacentElement('afterend', tagContainer);
-      
-      // 添加iF显示
-      if (journalInfo && journalInfo.impactFactor) {
-        const row = element.closest('tr');
-        if (row) {
-          const dataElement = row.querySelector('td.data');
-          if (dataElement) {
-            const impactFactorElement = document.createElement('span');
-            impactFactorElement.textContent = `iF：${journalInfo.impactFactor}`;
-            // 修改影响因子标签样式
-            Object.assign(impactFactorElement.style, {
+      if (journalInfo.tags && journalInfo.tags.length > 0) {
+          journalInfo.tags.forEach(tagText => {
+            if (tagText && tagText !== 'N/A') { // 检查 tagText 是否有效
+              const singleTag = document.createElement('span');
+              singleTag.className = 'journal-tag other-tag';
+              singleTag.textContent = tagText;
+              
+              // 使用更高级的配色方案
+              let bgColor = '#5C6BC0'; // 柔和蓝
+              if (tagText.includes('核心')) bgColor = '#EF5350'; // 柔和红
+              else if (tagText.includes('EI')) bgColor = '#FF7043'; // 柔和橙
+              else if (tagText.includes('CSCD')) bgColor = '#FFCA28'; // 柔和黄
+              else if (tagText.includes('CSSCI')) bgColor = '#9575CD'; // 柔和紫
+              
+              // 添加样式
+              Object.assign(singleTag.style, {
                 display: 'inline-block',
                 padding: '2px 6px',
-                backgroundColor: 'rgba(239, 83, 80, 0.6)', // 进一步降低饱和度
+                backgroundColor: bgColor.includes('5C6BC0') ? 'rgba(92, 107, 192, 0.6)' :
+                               bgColor.includes('EF5350') ? 'rgba(239, 83, 80, 0.6)' :
+                               bgColor.includes('FF7043') ? 'rgba(255, 112, 67, 0.6)' :
+                               bgColor.includes('FFCA28') ? 'rgba(255, 202, 40, 0.6)' :
+                               'rgba(149, 117, 205, 0.6)',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
                 fontWeight: '500',
-                marginLeft: '4px',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                whiteSpace: 'nowrap',
+                marginRight: '4px' // 统一右边距
+              });
+              
+              tagContainer.appendChild(singleTag);
+            }
+          });
+      }
+      
+      // 插入到期刊名称后面 (仅当有标签时才插入容器)
+      if (tagContainer.hasChildNodes()) {
+          journalNameElement.insertAdjacentElement('afterend', tagContainer);
+      }
+      
+      // 添加 iF, JCR_IF, CR 到 td.data
+      if (journalInfo) {
+        const row = element.closest('tr');
+        if (row) {
+          const dataElement = row.querySelector('td.data');
+          if (dataElement) {
+            // 清理旧的自定义标签，避免重复添加
+            dataElement.querySelectorAll('.custom-journal-info').forEach(el => el.remove());
+
+            const infoContainer = document.createElement('div');
+            infoContainer.className = 'custom-journal-info';
+            Object.assign(infoContainer.style, {
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+                marginTop: '2px',
                 lineHeight: '1'
             });
-            dataElement.appendChild(impactFactorElement);
+
+            // 添加 iF 显示 (使用 impactFactor 字段)
+            if (journalInfo.impactFactor && journalInfo.impactFactor !== 'N/A') {
+              const impactFactorElement = document.createElement('span');
+              impactFactorElement.className = 'impact-factor-tag'; // 保留类名
+              impactFactorElement.textContent = `IF: ${journalInfo.impactFactor}`; // 修改此处
+              Object.assign(impactFactorElement.style, {
+                  display: 'inline-block',
+                  padding: '2px 6px',
+                  backgroundColor: 'rgba(76, 175, 80, 0.7)', // 绿色，透明度调整
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '8px',
+                  fontWeight: '500',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  whiteSpace: 'nowrap'
+              });
+              infoContainer.appendChild(impactFactorElement);
+            }
+
+            // 添加 JCR_IF 显示
+            if (journalInfo.JCR_IF && journalInfo.JCR_IF !== 'N/A') {
+              const jcrIfElement = document.createElement('span');
+              jcrIfElement.className = 'jcr-if-tag';
+              jcrIfElement.textContent = `JCR IF: ${journalInfo.JCR_IF}`;
+              Object.assign(jcrIfElement.style, {
+                  display: 'inline-block',
+                  padding: '2px 6px',
+                  backgroundColor: 'rgba(239, 83, 80, 0.7)', // 红色，透明度调整
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '8px',
+                  fontWeight: '500',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  whiteSpace: 'nowrap'
+              });
+              infoContainer.appendChild(jcrIfElement);
+            }
+
+            // 添加 CR 显示
+            if (journalInfo.CR && journalInfo.CR !== 'N/A') {
+              const crElement = document.createElement('span');
+              crElement.className = 'cr-rank-tag';
+              crElement.textContent = `Rank: ${journalInfo.CR}`;
+              Object.assign(crElement.style, {
+                  display: 'inline-block',
+                  padding: '2px 6px',
+                  backgroundColor: 'rgba(33, 150, 243, 0.7)', // 蓝色，透明度调整
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '8px',
+                  fontWeight: '500',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  whiteSpace: 'nowrap'
+              });
+              infoContainer.appendChild(crElement);
+            }
+
+            // 如果容器中有内容，则添加到 dataElement
+            if (infoContainer.hasChildNodes()) {
+                // 查找现有的 span (如 '外文期刊')，在其后插入
+                const existingSpan = dataElement.querySelector('span');
+                if (existingSpan) {
+                    existingSpan.insertAdjacentElement('afterend', infoContainer);
+                } else {
+                    dataElement.appendChild(infoContainer); // 如果没有 span，直接添加
+                }
+            }
           }
         }
       }
