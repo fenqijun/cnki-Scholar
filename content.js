@@ -24,15 +24,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 监听动态加载的内容
 // 修改MutationObserver回调，添加processJournalTags
+// 添加防抖处理
+let processing = false;
 const observer = new MutationObserver(function (mutations) {
-  mutations.forEach(function (mutation) {
-      if (mutation.addedNodes.length) {
+  if (!processing) {
+    processing = true;
+    setTimeout(() => {
+      mutations.forEach(function (mutation) {
+        if (mutation.addedNodes.length) {
           addPdfDownloadButtons();
           addHoverForAbstracts();
           addDownloadAllButton();
-          processJournalTags();  // 新增
-      }
-  });
+          // 添加随机延迟（1-3秒）
+          setTimeout(processJournalTags, 1000 + Math.random() * 2000);
+        }
+      });
+      processing = false;
+    }, 500);
+  }
 });
 
 observer.observe(document.body, {
@@ -370,12 +379,22 @@ async function downloadAllPdfs() {
     }
 }
 
+// 添加缓存对象
+const journalCache = {
+  data: null,
+  lastFetch: 0,
+  CACHE_DURATION: 3600000 // 1小时缓存
+};
+
 async function processJournalTags() {
   try {
-    let journalsData = await fetchJournalData('https://gitee.com/kailangge/cnki-journals/raw/main/cnki_journals.json');
-    if (!journalsData) {
-      return;
+    // 使用缓存数据
+    if (!journalCache.data || Date.now() - journalCache.lastFetch > journalCache.CACHE_DURATION) {
+      journalCache.data = await fetchJournalData('https://gitee.com/kailangge/cnki-journals/raw/main/cnki_journals.json');
+      journalCache.lastFetch = Date.now();
     }
+    const journalsData = journalCache.data;
+    if (!journalsData) return;
 
     const sourceElements = document.querySelectorAll('td.source');
     sourceElements.forEach(element => {
