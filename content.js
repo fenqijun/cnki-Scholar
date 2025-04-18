@@ -372,27 +372,34 @@ async function downloadAllPdfs() {
 
 async function processJournalTags() {
   try {
-    // 只从 Gitee 获取数据
-    let journalsData = null;
-    try {
-        journalsData = await fetchJournalData('https://gitee.com/kailangge/cnki-journals/raw/main/cnki_journals.json');
-        if (!journalsData) {
-            console.warn('未能从 Gitee 获取期刊数据');
-            return;
-        }
-    } catch (error) {
-        console.error('从 Gitee 获取期刊数据时出错:', error);
-        return;
+    let journalsData = await fetchJournalData('https://gitee.com/kailangge/cnki-journals/raw/main/cnki_journals.json');
+    if (!journalsData) {
+      return;
     }
 
-    // 获取所有期刊名称元素
     const sourceElements = document.querySelectorAll('td.source');
     sourceElements.forEach(element => {
       if (element.querySelector('.journal-tag-container')) return;
       const journalNameElement = element.querySelector('a, span');
       const journalName = journalNameElement?.textContent.trim();
       if (journalName) {
-        const journalInfo = journalsData.find(j => j.title.toLowerCase() === journalName.toLowerCase());
+        let journalInfo;
+
+        // 第一级：精确匹配原始名称
+        journalInfo = journalsData.find(j => j.title.toLowerCase() === journalName.toLowerCase());
+
+        // 第二级：匹配中英文变体
+        if (!journalInfo) {
+          const variantName = `${journalName}(中英文)`;
+          journalInfo = journalsData.find(j => j.title.toLowerCase() === variantName.toLowerCase());
+        }
+
+        // 第三级：移除括号模糊匹配
+        if (!journalInfo) {
+          const baseName = journalName.replace(/[（）()]/g, '').trim();
+          journalInfo = journalsData.find(j => j.title.toLowerCase().includes(baseName.toLowerCase()));
+        }
+
         if (!journalInfo) return;
         const tagContainer = document.createElement('div');
         tagContainer.className = 'journal-tag-container';
@@ -555,7 +562,6 @@ async function processJournalTags() {
         if (tagContainer.hasChildNodes()) {
             journalNameElement.insertAdjacentElement('afterend', tagContainer);
         }
-        // IF/JCR_IF/CR显示
         if (journalInfo) {
           const row = element.closest('tr');
           if (row) {
