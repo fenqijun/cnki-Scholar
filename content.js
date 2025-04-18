@@ -418,6 +418,7 @@ async function processJournalTags() {
                 display: 'inline-block',
                 padding: '2px 6px',
                 backgroundColor: casColor,
+                opacity: '0.7',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
@@ -436,6 +437,7 @@ async function processJournalTags() {
                 display: 'inline-block',
                 padding: '2px 6px',
                 backgroundColor: '#9C27B0',
+                opacity: '0.7',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
@@ -460,6 +462,7 @@ async function processJournalTags() {
               display: 'inline-block',
               padding: '2px 6px',
               backgroundColor: jcrColor,
+              opacity: '0.7',
               color: 'white',
               borderRadius: '4px',
               fontSize: '8px',
@@ -480,6 +483,7 @@ async function processJournalTags() {
                 display: 'inline-block',
                 padding: '2px 6px',
                 backgroundColor: '#009688',
+                opacity: '0.7',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
@@ -505,6 +509,7 @@ async function processJournalTags() {
                 display: 'inline-block',
                 padding: '2px 6px',
                 backgroundColor: wjciColor,
+                opacity: '0.7',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
@@ -516,7 +521,11 @@ async function processJournalTags() {
         }
         // tags原样显示
         if (journalInfo.tags && journalInfo.tags.length > 0) {
-            journalInfo.tags.forEach(tagText => {
+            journalInfo.tags.sort((a, b) => {
+                if (a.includes('CSSCI')) return -1;
+                if (b.includes('CSSCI')) return 1;
+                return 0;
+            }).forEach(tagText => {
               if (tagText && tagText !== 'N/A') {
                 const singleTag = document.createElement('span');
                 singleTag.className = 'journal-tag';
@@ -536,7 +545,8 @@ async function processJournalTags() {
                   fontSize: '8px',
                   fontWeight: '500',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                  marginRight: '4px'
+                  marginRight: '4px',
+                  opacity: '0.7'
                 });
                 tagContainer.appendChild(singleTag);
               }
@@ -568,7 +578,7 @@ async function processJournalTags() {
                 Object.assign(impactFactorElement.style, {
                     display: 'inline-block',
                     padding: '2px 6px',
-                    backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                    backgroundColor: 'rgba(239, 83, 80, 0.7)',
                     color: 'white',
                     borderRadius: '4px',
                     fontSize: '8px',
