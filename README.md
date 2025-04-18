@@ -1,8 +1,13 @@
 # cnki-Scholar插件
 
 ![42f81ffd413130fde27caedb612c5e77](https://github.com/user-attachments/assets/ba10c22f-6836-4021-9882-79a35d5f4e7e)
+![image](https://github.com/user-attachments/assets/08def61a-f80d-4375-b8fb-2a85cf3488bb)
 
 一款专为CNKI（中国知网）设计的浏览器插件，提供更便捷的文献下载和阅读体验。
+
+## ✨ 新增功能
+- 支持外文期刊显示
+- 支持中科院分区表、JCR分区表
 
 ## ✨ 核心功能
 
