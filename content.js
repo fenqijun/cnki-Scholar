@@ -429,6 +429,63 @@ async function processJournalTags() {
           marginTop: '2px',
           lineHeight: '1'
         });
+        // 影响因子标签
+        if (journalInfo.impactFactor && journalInfo.impactFactor !== 'N/A') {
+            const impactTag = document.createElement('span');
+            impactTag.className = 'journal-tag impact-tag';
+            impactTag.textContent = `IF: ${journalInfo.impactFactor}`;
+            Object.assign(impactTag.style, {
+                display: 'inline-block',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(156, 39, 176, 0.8)',
+                color: 'white',
+                borderRadius: '4px',
+                fontSize: '8px',
+                fontWeight: '500',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                marginRight: '4px'
+            });
+            tagContainer.appendChild(impactTag);
+        }
+        
+        // JCR影响因子标签
+        if (journalInfo.JCR_IF && journalInfo.JCR_IF !== 'N/A') {
+            const jcrIfTag = document.createElement('span');
+            jcrIfTag.className = 'journal-tag jcr-if-tag';
+            jcrIfTag.textContent = `JCR IF: ${journalInfo.JCR_IF}`;
+            Object.assign(jcrIfTag.style, {
+                display: 'inline-block',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(156, 39, 176, 0.8)',
+                color: 'white',
+                borderRadius: '4px',
+                fontSize: '8px',
+                fontWeight: '500',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                marginRight: '4px'
+            });
+            tagContainer.appendChild(jcrIfTag);
+        }
+
+        // 排名标签
+        if (journalInfo.CR && journalInfo.CR !== 'N/A') {
+            const rankTag = document.createElement('span');
+            rankTag.className = 'journal-tag rank-tag';
+            rankTag.textContent = `排名: ${journalInfo.CR}`;
+            Object.assign(rankTag.style, {
+                display: 'inline-block',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(156, 39, 176, 0.8)',
+                color: 'white',
+                borderRadius: '4px',
+                fontSize: '8px',
+                fontWeight: '500',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                marginRight: '4px'
+            });
+            tagContainer.appendChild(rankTag);
+        }
+
         // 中科院标签
         if (journalInfo["中科院"]) {
             const casTag = document.createElement('span');
@@ -462,8 +519,7 @@ async function processJournalTags() {
             Object.assign(topTag.style, {
                 display: 'inline-block',
                 padding: '2px 6px',
-                backgroundColor: '#9C27B0',
-                opacity: '0.7',
+                backgroundColor: 'rgba(156, 39, 176, 0.8)',
                 color: 'white',
                 borderRadius: '4px',
                 fontSize: '8px',
@@ -587,74 +643,6 @@ async function processJournalTags() {
             const dataElement = row.querySelector('td.data');
             if (dataElement) {
               dataElement.querySelectorAll('.custom-journal-info').forEach(el => el.remove());
-              const infoContainer = document.createElement('div');
-              infoContainer.className = 'custom-journal-info';
-              Object.assign(infoContainer.style, {
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '4px',
-                  marginTop: '2px',
-                  lineHeight: '1'
-              });
-              if (journalInfo.impactFactor && journalInfo.impactFactor !== 'N/A') {
-                const impactFactorElement = document.createElement('span');
-                impactFactorElement.className = 'impact-factor-tag';
-                impactFactorElement.textContent = `IF: ${journalInfo.impactFactor}`;
-                Object.assign(impactFactorElement.style, {
-                    display: 'inline-block',
-                    padding: '2px 6px',
-                    backgroundColor: 'rgba(239, 83, 80, 0.7)',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontSize: '8px',
-                    fontWeight: '500',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                    whiteSpace: 'nowrap'
-                });
-                infoContainer.appendChild(impactFactorElement);
-              }
-              if (journalInfo.JCR_IF && journalInfo.JCR_IF !== 'N/A') {
-                const jcrIfElement = document.createElement('span');
-                jcrIfElement.className = 'jcr-if-tag';
-                jcrIfElement.textContent = `JCR IF: ${journalInfo.JCR_IF}`;
-                Object.assign(jcrIfElement.style, {
-                    display: 'inline-block',
-                    padding: '2px 6px',
-                    backgroundColor: 'rgba(239, 83, 80, 0.7)',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontSize: '8px',
-                    fontWeight: '500',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                    whiteSpace: 'nowrap'
-                });
-                infoContainer.appendChild(jcrIfElement);
-              }
-              if (journalInfo.CR && journalInfo.CR !== 'N/A') {
-                const crElement = document.createElement('span');
-                crElement.className = 'cr-rank-tag';
-                crElement.textContent = `Rank: ${journalInfo.CR}`;
-                Object.assign(crElement.style, {
-                    display: 'inline-block',
-                    padding: '2px 6px',
-                    backgroundColor: 'rgba(33, 150, 243, 0.7)',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontSize: '8px',
-                    fontWeight: '500',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                    whiteSpace: 'nowrap'
-                });
-                infoContainer.appendChild(crElement);
-              }
-              if (infoContainer.hasChildNodes()) {
-                  const existingSpan = dataElement.querySelector('span');
-                  if (existingSpan) {
-                      existingSpan.insertAdjacentElement('afterend', infoContainer);
-                  } else {
-                      dataElement.appendChild(infoContainer);
-                  }
-              }
             }
           }
         }
