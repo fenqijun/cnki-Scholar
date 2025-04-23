@@ -139,34 +139,143 @@ async function addPdfDownloadButtons() {
 // 修改PDF链接获取函数
 async function fetchPdfUrl(articleUrl, row) {
   try {
+      console.log(`开始获取文章页: ${articleUrl}`);
       const response = await fetch(articleUrl, { credentials: 'include' });
-      if (!response.ok) throw new Error('网络响应不正常');
+      if (!response.ok) throw new Error(`网络响应不正常: ${response.status} ${response.statusText}`);
 
       const text = await response.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, 'text/html');
+      console.log('文章页HTML解析完成');
 
-      // 判断是否是学位论文
-      const isThesis = row.querySelector('img[src*="thesis"]') || 
-                       articleUrl.includes('CDMD');
-
-      if (isThesis) {
-          // 学位论文PDF下载链接选择器
-          const thesisPdfLink = doc.querySelector('.btn-dlcaj, .btn-dlpdf');
-          return thesisPdfLink?.href;
-      } else {
-          // 期刊论文PDF下载链接选择器
-          const downloadLinks = doc.querySelectorAll('#pdfDown, #cajDown');
-          for (const link of downloadLinks) {
-              if (link.textContent.trim().toLowerCase().includes('pdf')) {
-                  return link.href;
+      // 1. 优先查找DOI链接
+      console.log('步骤1: 查找DOI链接...');
+      const doiLink = doc.querySelector('a[href*="doi.org"], a[href*="dx.doi.org"]');
+      if (doiLink?.href) {
+          try {
+              const validUrl = new URL(doiLink.href); // 验证并可能标准化URL
+              if (validUrl.protocol === 'http:' || validUrl.protocol === 'https:') {
+                  console.log('找到有效DOI链接:', validUrl.href);
+                  return validUrl.href;
               }
+              console.warn('找到的DOI链接协议无效:', doiLink.href);
+          } catch (e) {
+              console.warn('找到的DOI链接格式无效:', doiLink.href);
+          }
+      } else {
+          console.log('未找到DOI链接.');
+      }
+
+      // 2. 查找“全部来源”区域的链接
+      console.log('步骤2: 查找“全部来源”链接...');
+      const allSourceLinks = doc.querySelectorAll('.detail_doc-database-content__3nYOl .detail_doc-database-link__7ovGD a');
+      console.log(`找到 ${allSourceLinks.length} 个潜在的“全部来源”链接元素.`);
+      if (allSourceLinks.length === 0) {
+          console.log('选择器 ".detail_doc-database-content__3nYOl .detail_doc-database-link__7ovGD a" 未找到任何元素。');
+          // 可选：记录部分页面HTML以供调试
+          // console.log('页面部分HTML:', doc.body.innerHTML.substring(0, 5000));
+      }
+      let foundSourceLink = null;
+      for (const sourceLink of allSourceLinks) {
+          console.log('检查潜在来源元素 outerHTML:', sourceLink.outerHTML); // 新增日志
+          if (sourceLink?.href) {
+              const originalHref = sourceLink.href;
+              console.log('检查潜在来源链接 href:', originalHref);
+              try {
+                  let cleanedHref = originalHref.trim().replace(/^`|`$/g, '');
+                  // 尝试解析URL，处理相对路径
+                  const potentialUrl = new URL(cleanedHref, articleUrl);
+                  console.log('解析后的潜在来源URL:', potentialUrl.href);
+
+                  if (potentialUrl.protocol === 'http:' || potentialUrl.protocol === 'https:') {
+                      console.log('找到有效的“全部来源”链接:', potentialUrl.href);
+                      foundSourceLink = potentialUrl.href; // 暂存找到的链接
+                      // 可以在这里添加逻辑，优先选择包含特定关键词的链接，如果需要
+                      // 例如: if (potentialUrl.href.toLowerCase().includes('pdf')) { return potentialUrl.href; }
+                      break; // 找到第一个有效的就跳出循环
+                  } else {
+                      console.warn('解析后的来源URL协议无效:', potentialUrl.href);
+                  }
+              } catch (e) {
+                  console.error('处理“全部来源”链接时发生错误:', originalHref, '错误:', e);
+              }
+          } else {
+              console.log('跳过无效的 sourceLink 或 href 属性为空:', sourceLink);
           }
       }
+      if (foundSourceLink) {
+          console.log('返回找到的“全部来源”链接:', foundSourceLink);
+          return foundSourceLink;
+      } else {
+          console.log('未在“全部来源”区域找到有效链接.');
+      }
+
+      // 3. 最后查找PDF/CAJ下载按钮
+      console.log('步骤3: 查找PDF/CAJ下载按钮...');
+      // 判断是否是学位论文 (根据URL或页面特征)
+      // 检查 row 是否存在，避免在非列表页调用时出错
+      const isThesis = row?.querySelector('img[src*="thesis"]') || articleUrl.includes('CDMD');
+      console.log(`是否为学位论文: ${isThesis}`);
+
+      if (isThesis) {
+          // 学位论文下载按钮选择器
+          const thesisPdfLink = doc.querySelector('.btn-dlcaj, .btn-dlpdf'); // CAJ优先还是PDF优先？根据实际情况调整
+          if (thesisPdfLink?.href) {
+              try {
+                  const validUrl = new URL(thesisPdfLink.href, articleUrl);
+                  if (validUrl.protocol === 'http:' || validUrl.protocol === 'https:') {
+                      console.log('找到学位论文下载链接:', validUrl.href);
+                      return validUrl.href;
+                  }
+                  console.warn('找到的学位论文下载链接协议无效:', thesisPdfLink.href);
+              } catch(e) {
+                  console.warn('找到的学位论文下载链接格式无效:', thesisPdfLink.href);
+              }
+          }
+      } else {
+          // 期刊论文下载按钮选择器
+          const downloadLinks = doc.querySelectorAll('#pdfDown, #cajDown');
+          let foundPdfLink = null;
+          let foundCajLink = null;
+
+          for (const link of downloadLinks) {
+              if (link?.href) {
+                  const linkText = link.textContent?.trim().toLowerCase() || '';
+                  try {
+                      const validUrl = new URL(link.href, articleUrl);
+                      if (validUrl.protocol !== 'http:' && validUrl.protocol !== 'https:') {
+                          console.warn('下载按钮链接协议无效:', link.href);
+                          continue;
+                      }
+                      if (linkText.includes('pdf')) {
+                          console.log('找到PDF下载按钮链接:', validUrl.href);
+                          foundPdfLink = validUrl.href;
+                          break; // 优先PDF，找到就停止
+                      } else if (linkText.includes('caj') && !foundCajLink) {
+                          console.log('找到CAJ下载按钮链接:', validUrl.href);
+                          foundCajLink = validUrl.href; // 暂存CAJ链接
+                      }
+                  } catch (e) {
+                      console.warn('下载按钮链接格式无效:', link.href);
+                  }
+              }
+          }
+
+          if (foundPdfLink) {
+              return foundPdfLink;
+          }
+          if (foundCajLink) {
+              return foundCajLink;
+          }
+      }
+
+      console.log('所有步骤均未找到有效的下载链接.');
       return null;
   } catch (error) {
-      console.error('获取PDF链接时出错:', error);
-      throw error;
+      console.error(`获取PDF链接时出错 (${articleUrl}):`, error);
+      // 避免向上抛出错误导致整个脚本停止，而是返回null
+      // throw error; 
+      return null; // 返回null，让调用处处理
   }
 }
 
@@ -243,33 +352,6 @@ async function fetchAbstract(articleUrl) {
   }
 }
 
-// 获取PDF下载链接（保持不变）
-async function fetchPdfUrl(articleUrl) {
-  try {
-      const response = await fetch(articleUrl, { credentials: 'include' });
-      if (!response.ok) throw new Error('网络响应不正常');
-
-      const text = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, 'text/html');
-      
-      // 获取所有下载链接
-      const downloadLinks = doc.querySelectorAll('#pdfDown, #cajDown');
-      
-      // 遍历所有下载链接，找到PDF下载按钮
-      for (const link of downloadLinks) {
-          const linkText = link.textContent.trim().toLowerCase();
-          if (linkText.includes('pdf')) {
-              return link.href;
-          }
-      }
-      return null;
-  } catch (error) {
-      console.error('获取PDF链接时出错:', error);
-      throw error;
-  }
-}
-
 // 添加下载所有按钮
 function addDownloadAllButton() {
   const pagesDiv = document.querySelector('#briefBox > div:nth-child(2) > div > div.pages');
@@ -292,7 +374,7 @@ function addDownloadAllButton() {
 
 // 下载队列管理类
 class DownloadQueue {
-    constructor(maxConcurrent = 3) {
+    constructor(maxConcurrent = 1) { // 默认并发数改为1
         this.queue = [];
         this.running = 0;
         this.maxConcurrent = maxConcurrent;
@@ -331,7 +413,7 @@ class DownloadQueue {
     }
 
     async executeTask(task) {
-        const delay = Math.random() * 2000 + 1000; // 1-3秒随机延迟
+        const delay = Math.random() * 2000 + 3000; // 调整为3-5秒随机延迟
         await new Promise(resolve => setTimeout(resolve, delay));
         await task.execute();
     }
@@ -350,7 +432,14 @@ class DownloadQueue {
 
 // 下载所有页面的PDF
 async function downloadAllPdfs() {
-    const downloadQueue = new DownloadQueue(3);
+    const downloadAllBtn = document.querySelector('.download-all-btn');
+    if (!downloadAllBtn) return; // 如果找不到按钮，则退出
+
+    const originalText = downloadAllBtn.textContent;
+    downloadAllBtn.textContent = '下载中...';
+    downloadAllBtn.disabled = true;
+
+    const downloadQueue = new DownloadQueue(); // 使用默认并发数 (已修改为2)
     const articleLinks = document.querySelectorAll('#gridTable > div > div > div > table > tbody > tr > td.name > a.fz14, #gridTable > div > div > div > table > tbody > tr > td.name > div > a.fz14');
 
     // 创建进度显示元素
@@ -359,23 +448,43 @@ async function downloadAllPdfs() {
     progressElement.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; z-index: 9999;';
     document.body.appendChild(progressElement);
 
-    // 添加下载任务到队列
-    for (const link of articleLinks) {
-        await downloadQueue.add({
-            retries: 0,
-            execute: async () => {
-                const pdfUrl = await fetchPdfUrl(link.href);
-                if (pdfUrl) {
-                    // 检查是否包含验证码页面特征
-                    if (pdfUrl.toLowerCase().includes('checkcode')) {
-                        throw new Error('检测到验证码，请手动处理');
+    try {
+        // 添加下载任务到队列
+        for (const link of articleLinks) {
+            await downloadQueue.add({
+                retries: 0,
+                execute: async () => {
+                    const pdfUrl = await fetchPdfUrl(link.href);
+                    if (pdfUrl) {
+                        // 检查是否包含验证码页面特征
+                        if (pdfUrl.toLowerCase().includes('checkcode')) {
+                            throw new Error('检测到验证码，请手动处理');
+                        }
+                        window.open(pdfUrl, '_blank');
+                    } else {
+                        throw new Error('无法获取PDF链接');
                     }
-                    window.open(pdfUrl, '_blank');
-                } else {
-                    throw new Error('无法获取PDF链接');
                 }
-            }
+            });
+        }
+        // 等待所有任务完成
+        await new Promise(resolve => {
+            const interval = setInterval(() => {
+                if (downloadQueue.running === 0 && downloadQueue.queue.length === 0) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
         });
+    } catch (error) {
+        console.error('下载所有PDF过程中出错:', error);
+        alert('下载所有PDF过程中出错: ' + error.message);
+    } finally {
+        // 恢复按钮状态
+        downloadAllBtn.textContent = originalText;
+        downloadAllBtn.disabled = false;
+        // 可选：移除进度显示元素
+        // if (progressElement) progressElement.remove();
     }
 }
 
