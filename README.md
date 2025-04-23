@@ -1,4 +1,4 @@
-# cnki-Scholar知网插件，显示期刊等级标签
+# cnki-Scholar知网插件，批量下载知网论文PDF、显示期刊等级标签
 
 ![42f81ffd413130fde27caedb612c5e77](https://github.com/user-attachments/assets/ba10c22f-6836-4021-9882-79a35d5f4e7e)
 ![image](https://github.com/user-attachments/assets/bfd5d72b-7fe1-4099-b286-733f466e24b5)
@@ -10,7 +10,8 @@
 
 ## ✨ 新增功能
 - 支持外文期刊显示
-- 支持中科院分区表、JCR分区表
+- 支持SCI、SSCI、CSCD、北大核心、中科院分区表、JCR分区表
+- 支持检测英文文献DOI号，自动匹配多来源下载链接
 
 ## ✨ 核心功能
 
