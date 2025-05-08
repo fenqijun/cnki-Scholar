@@ -110,7 +110,29 @@ async function addPdfDownloadButtons() {
           nameCell.innerHTML = '';
           container.appendChild(downloadBtn);
           if (titleLink) container.appendChild(titleLink);
+          
+          // 创建一个新的容器来包裹关键词容器，确保与标题对齐
+          const titleAndKeywordsWrapper = document.createElement('div');
+          titleAndKeywordsWrapper.style.cssText = 'display: flex; flex-direction: column; flex: 1; min-width: 0;';
+          
+          // 将标题移动到这个新容器中
+          if (titleLink) {
+              container.removeChild(titleLink);
+              titleAndKeywordsWrapper.appendChild(titleLink);
+          }
+          
+          // 创建关键词容器，确保与标题左对齐
+          const keywordsContainer = document.createElement('div');
+          keywordsContainer.className = 'keywords-container';
+          keywordsContainer.style.cssText = 'display: flex; flex-wrap: wrap; margin-top: 4px; width: 100%;'; // 移除margin-left
+          titleAndKeywordsWrapper.appendChild(keywordsContainer);
+          
+          // 将新容器添加到主容器中
+          container.appendChild(titleAndKeywordsWrapper);
           nameCell.appendChild(container);
+          
+          // 异步获取关键词
+          fetchKeywords(link.href, keywordsContainer);
       }
 
       // 点击事件
@@ -136,6 +158,101 @@ async function addPdfDownloadButtons() {
   }
 }
 
+// 获取关键词函数
+async function fetchKeywords(articleUrl, container) {
+  try {
+      const response = await fetch(articleUrl, { credentials: 'include' });
+      if (!response.ok) throw new Error('网络响应不正常');
+
+      const text = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+
+      // 获取关键词元素 - 支持多种文献类型
+      const keywordsSelectors = [
+          // 期刊论文
+          'body > div.wrapper > div.main > div.container > div > div:nth-child(3) > div:nth-child(4) > p.keywords',
+          // 学位论文
+          'body > div.wrapper > div.main > div.container > div > div > div:nth-child(3) > div.brief > div:nth-child(4) > p',
+          // 会议论文
+          'body > div.wrapper > div.main > div.container > div > div.doc-top > div:nth-child(3) > div.brief > div:nth-child(4) > p',
+          // 报纸
+          'body > div.wrapper > div.main > div.container > div.doc > div > div:nth-child(3) > div.brief > div:nth-child(3) > p'
+      ];
+      
+      let keywordsElement = null;
+      
+      // 尝试所有选择器直到找到匹配的元素
+      for (const selector of keywordsSelectors) {
+          const element = doc.querySelector(selector);
+          if (element && element.classList.contains('keywords')) {
+              keywordsElement = element;
+              break;
+          }
+      }
+      
+      if (keywordsElement) {
+          const keywordLinks = keywordsElement.querySelectorAll('a');
+          
+          if (keywordLinks.length > 0) {
+              keywordLinks.forEach((link, index) => {
+                  const keyword = link.textContent.replace(/;$/, '').trim();
+                  if (keyword) {
+                      // 获取关键词链接
+                      let keywordUrl = '';
+                      try {
+                          // 提取href属性并清理
+                          const rawHref = link.getAttribute('href');
+                          if (rawHref) {
+                              // 清理href中的反引号和多余空格
+                              keywordUrl = rawHref.replace(/`/g, '').trim();
+                          }
+                      } catch (e) {
+                          console.error('处理关键词链接时出错:', e);
+                      }
+                      
+                      // 创建关键词标签为链接
+                      const keywordTag = document.createElement('a');
+                      keywordTag.className = 'keyword-tag';
+                      keywordTag.textContent = keyword;
+                      keywordTag.href = keywordUrl;
+                      keywordTag.target = '_blank'; // 在新标签页打开
+                      
+                      // 降低饱和度和透明度的颜色
+                      const colors = [
+                          '#f0f8ff,#6eb6ff', // 淡蓝色
+                          '#f5fff0,#a3d899', // 淡绿色
+                          '#fff8f0,#ffbe7d', // 淡橙色
+                          '#fff5fa,#ffa6d2', // 淡粉色
+                          '#faf5ff,#c59df9'  // 淡紫色
+                      ];
+                      const [bgColor, textColor] = colors[index % colors.length].split(',');
+                      
+                      Object.assign(keywordTag.style, {
+                          display: 'inline-block',
+                          padding: '0px 4px', 
+                          margin: '0 4px 2px 0',
+                          fontSize: '9px',
+                          borderRadius: '4px',
+                          backgroundColor: bgColor,
+                          color: textColor,
+                          border: `1px solid ${textColor}`,
+                          whiteSpace: 'nowrap',
+                          lineHeight: '1.2',
+                          opacity: '0.7',
+                          textDecoration: 'none', // 移除下划线
+                          cursor: 'pointer'
+                      });
+                      
+                      container.appendChild(keywordTag);
+                  }
+              });
+          }
+      }
+  } catch (error) {
+      console.error('获取关键词时出错:', error);
+  }
+}
 // 修改PDF链接获取函数
 async function fetchPdfUrl(articleUrl, row) {
   try {
@@ -304,30 +421,99 @@ async function addHoverForAbstracts() {
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           zIndex: '9999',
           display: 'none',
-          fontSize: '14px',
+          fontSize: '12px', // 这里将字号从14px改为12px
           lineHeight: '1.5',
-          color: '#333'
+          color: '#333',
+          maxHeight: '300px', // 限制最大高度
+          overflowY: 'auto'   // 添加垂直滚动条
       });
       document.body.appendChild(tooltip);
 
       // 鼠标悬停事件
       link.addEventListener('mouseenter', async (e) => {
-          const rect = link.getBoundingClientRect();
-          tooltip.style.left = `${rect.right + 10}px`;
-          tooltip.style.top = `${rect.top}px`;
+          // 先显示提示框以获取其尺寸
           tooltip.style.display = 'block';
           tooltip.textContent = '加载摘要中...';
+          
+          // 计算位置，确保不超出视窗
+          const rect = link.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          
+          // 获取提示框尺寸
+          const tooltipRect = tooltip.getBoundingClientRect();
+          
+          // 智能定位：优先右侧，空间不足则左侧
+          let left = rect.right + 10;
+          if (left + tooltipRect.width > viewportWidth - 20) {
+              // 右侧空间不足，尝试左侧
+              left = rect.left - tooltipRect.width - 10;
+              // 如果左侧也不足，则居中显示
+              if (left < 20) {
+                  left = Math.max(20, Math.min(viewportWidth - tooltipRect.width - 20, 
+                      rect.left + (rect.width - tooltipRect.width) / 2));
+              }
+          }
+          
+          // 垂直定位：优先与链接顶部对齐，空间不足则调整
+          let top = rect.top;
+          // 如果底部超出视窗，向上调整
+          if (top + tooltipRect.height > viewportHeight - 20) {
+              // 尝试将底部对齐到视窗底部
+              top = viewportHeight - tooltipRect.height - 20;
+              // 确保不超出顶部
+              top = Math.max(20, top);
+          }
+          
+          // 应用计算后的位置
+          tooltip.style.left = `${left}px`;
+          tooltip.style.top = `${top}px`;
 
           try {
               const abstract = await fetchAbstract(link.href);
               tooltip.innerHTML = abstract || '<span style="color:#999">无摘要内容</span>';
+              
+              // 摘要加载后再次检查位置（内容可能改变尺寸）
+              const updatedTooltipRect = tooltip.getBoundingClientRect();
+              
+              // 重新计算水平位置
+              left = rect.right + 10;
+              if (left + updatedTooltipRect.width > viewportWidth - 20) {
+                  left = rect.left - updatedTooltipRect.width - 10;
+                  if (left < 20) {
+                      left = Math.max(20, Math.min(viewportWidth - updatedTooltipRect.width - 20, 
+                          rect.left + (rect.width - updatedTooltipRect.width) / 2));
+                  }
+              }
+              
+              // 重新计算垂直位置
+              top = rect.top;
+              if (top + updatedTooltipRect.height > viewportHeight - 20) {
+                  top = viewportHeight - updatedTooltipRect.height - 20;
+                  top = Math.max(20, top);
+              }
+              
+              // 应用最终位置
+              tooltip.style.left = `${left}px`;
+              tooltip.style.top = `${top}px`;
           } catch (error) {
               console.error('获取摘要失败:', error);
               tooltip.innerHTML = '<span style="color:red">获取摘要失败</span>';
           }
       });
 
+      // 确保鼠标离开时隐藏提示框
       link.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+      });
+      
+      // 添加点击提示框内部时不关闭
+      tooltip.addEventListener('mouseenter', () => {
+          tooltip.dataset.hovering = 'true';
+      });
+      
+      tooltip.addEventListener('mouseleave', () => {
+          tooltip.dataset.hovering = 'false';
           tooltip.style.display = 'none';
       });
   }
@@ -413,7 +599,7 @@ class DownloadQueue {
     }
 
     async executeTask(task) {
-        const delay = Math.random() * 2000 + 3000; // 调整为3-5秒随机延迟
+        const delay = Math.random() * 2000 + 8000; // 修改为8-10秒随机延迟
         await new Promise(resolve => setTimeout(resolve, delay));
         await task.execute();
     }
@@ -421,7 +607,7 @@ class DownloadQueue {
     updateProgress() {
         const progressElement = document.querySelector('.download-progress');
         if (progressElement) {
-            const progress = ((this.completedTasks / this.totalTasks) * 100).toFixed(1);
+            const progress = Math.round((this.completedTasks / this.totalTasks) * 100);
             progressElement.textContent = `下载进度: ${progress}% (${this.completedTasks}/${this.totalTasks})`;
             if (this.failedTasks > 0) {
                 progressElement.textContent += ` 失败: ${this.failedTasks}`;
