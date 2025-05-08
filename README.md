@@ -1,11 +1,9 @@
-# cnki-Scholar知网插件，批量下载知网论文PDF、显示期刊等级、关键词标签
+# cnki-Scholar知网插件，批量下载知网论文PDF、显示期刊等级、关键词标签（下面有安装教程）
 
-<div align="center">
-  <img width="70%" src="https://github.com/user-attachments/assets/6e6dace1-9174-42e8-8cd4-996396e7a506" alt="主界面截图" />
-  <img width="45%" src="https://github.com/user-attachments/assets/ba10c22f-6836-4021-9882-79a35d5f4e7e" alt="功能演示1" style="margin: 10px;" />
-  <img width="45%" src="https://github.com/user-attachments/assets/bfd5d72b-7fe1-4099-b286-733f466e24b5" alt="功能演示2" style="margin: 10px;" />
-  <img width="45%" src="https://github.com/user-attachments/assets/056f506c-1e0e-4e53-8c38-5941a62f96a1" alt="功能演示3" style="margin: 10px;" />
-</div>
+![主界面截图](https://github.com/user-attachments/assets/6e6dace1-9174-42e8-8cd4-996396e7a506)
+![功能演示1](https://github.com/user-attachments/assets/ba10c22f-6836-4021-9882-79a35d5f4e7e)
+![功能演示2](https://github.com/user-attachments/assets/bfd5d72b-7fe1-4099-b286-733f466e24b5)
+![功能演示3](https://github.com/user-attachments/assets/056f506c-1e0e-4e53-8c38-5941a62f96a1)
 
 一款专为CNKI（中国知网）设计的浏览器插件，提供更便捷的文献下载和阅读体验。
 
