@@ -34,3 +34,12 @@
 .download-all-btn:hover {
   background-color: #0056b3;
 }
+
+.keyword-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 4px 4px 0;
+  font-size: 9px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
